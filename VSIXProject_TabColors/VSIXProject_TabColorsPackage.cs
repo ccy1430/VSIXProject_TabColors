@@ -76,13 +76,14 @@ namespace VSIXProject_TabColors
                 OnDocumentOpened(doc);
             }
 
-
-
             Debug.WriteLine("------------------------------------------------");
             Debug.WriteLine("tabcolor");
             Debug.WriteLine("------------------------------------------------");
         }
 
+        private static readonly Dictionary<string, SolidColorBrush> cacheColors = new Dictionary<string, SolidColorBrush>();
+        private static PropertyInfo property_DockViewElement;
+        private static PropertyInfo property_TabAccentBrush;
         private void OnDocumentOpened(Document document)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -90,31 +91,16 @@ namespace VSIXProject_TabColors
             var window = document?.ActiveWindow;
             if (window == null) return;
 
-            var rootView = window.GetType().GetRuntimeProperty("DockViewElement").GetValue(window);
+            if (property_DockViewElement == null)
+            {
+                property_DockViewElement = window.GetType().GetProperty("DockViewElement", BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            if (property_DockViewElement == null) return;
+
+            var rootView = property_DockViewElement.GetValue(window);
             if (rootView == null) return;
 
-            //+ { ProjectTemplate.csproj}
-            //Microsoft.VisualStudio.PlatformUI.Shell.ViewElement { Microsoft.VisualStudio.Platform.WindowManagement.DocumentView}
-
-            //frame.SetProperty((int)__VSFPROPID.VSFPROPID_BkColor, (uint)Color.Red.ToArgb());
-            //Debug.WriteLine(frame.GetType());
-
-
-            //IEnumerable<WindowFrame> allTabs = await VS.Windows.GetAllDocumentWindowsAsync();
-            //foreach (var frame in allTabs)
-            //{
-
-            //    object innerFrame = _getFrameField.GetValue(frame);
-
-            //    Type rootviewtype = rootView.GetType();
-            //    var windowsFrame = rootviewtype.GetRuntimeProperty("WindowFrame").GetValue(rootView);
-            //    if (windowsFrame == null) continue;
-            //    string tabpath = windowsFrame.GetType().GetRuntimeProperty("EffectiveDocumentMoniker").GetValue(windowsFrame) as string;
-            //    if (tabpath == null) continue;
-            //    int pathSubIndex = tabpath.LastIndexOf('\\');
-            //    if (pathSubIndex == -1) continue;
-
-            SolidColorBrush insteadBrush = null;
+            SolidColorBrush insteadBrush;
             if (!cacheColors.TryGetValue(document.Path, out insteadBrush))
             {
                 var rand = new Random(document.Path.GetHashCode());
@@ -128,11 +114,17 @@ namespace VSIXProject_TabColors
                 cacheColors.Add(document.Path, insteadBrush);
             }
 
+            if (property_TabAccentBrush == null)
+            {
+                property_TabAccentBrush = rootView.GetType().GetRuntimeProperty("TabAccentBrush");
+            }
+            if (property_TabAccentBrush == null) return;
 
-            var tabbrush_property = rootView.GetType().GetRuntimeProperty("TabAccentBrush");
-            tabbrush_property.SetValue(rootView, insteadBrush);
+            property_TabAccentBrush.SetValue(rootView, insteadBrush);
+
+            //IsTabGroupColorized
         }
-        private static readonly Dictionary<string, SolidColorBrush> cacheColors = new Dictionary<string, SolidColorBrush>();
+
 
         #endregion
     }
