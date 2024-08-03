@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="VSIXProject_TabColors.608267a4-db3e-47f5-9323-d1f7ae819b51" Version="1.0" Language="en-US" Publisher="春阳 曹" />
+        <Identity Id="VSIXProject_TabColors.608267a4-db3e-47f5-9323-d1f7ae819b51" Version="1.1" Language="en-US" Publisher="春阳 曹" />
         <DisplayName>VSIXProject_TabColors</DisplayName>
         <Description xml:space="preserve">Empty VSIX Project.</Description>
         <Preview>true</Preview>
