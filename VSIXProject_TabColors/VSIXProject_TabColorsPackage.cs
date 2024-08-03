@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Packaging;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -67,27 +68,57 @@ namespace VSIXProject_TabColors
             base.Initialize();
             var dte = (DTE2)await GetServiceAsync(typeof(DTE));
             var events = dte.Events as Events2;
-            var documentEvents = events.DocumentEvents;
-            documentEvents.DocumentOpened += OnDocumentOpened;
+
+           var  windowEvents = events.WindowEvents;
+            windowEvents.WindowCreated += WindowEvents_WindowCreated;
 
             var documents = dte.Documents;
             foreach (Document doc in documents)
             {
-                OnDocumentOpened(doc);
+                ChangeColor(doc, doc.Path);
             }
+
+
+            //var _windowFrameEvents = new MyWindowFrameNotify();
+            //IVsWindowFrame windowFrame = await ServiceProvider.GetGlobalServiceAsync(typeof(IVsWindowFrame)) as IVsWindowFrame;
+            //if (windowFrame is IVsWindowFrame2 windowFrame2)
+            //{
+            //    windowFrame2.Advise(_windowFrameEvents, out _);
+            //}
+            //new RunningDocTableEvents();
 
             Debug.WriteLine("------------------------------------------------");
             Debug.WriteLine("tabcolor");
             Debug.WriteLine("------------------------------------------------");
         }
 
+        private void WindowEvents_WindowCreated(EnvDTE.Window Window)
+        {
+            Debug.WriteLine("WindowCreated");
+            ThreadHelper.ThrowIfNotOnUIThread();
+            ChangeColor(Window.Document,Window.Document.Path);
+        }
+
         private static readonly Dictionary<string, SolidColorBrush> cacheColors = new Dictionary<string, SolidColorBrush>();
         private static PropertyInfo property_DockViewElement;
         private static PropertyInfo property_TabAccentBrush;
+        private static PropertyInfo property_Colorized;
+
         private void OnDocumentOpened(Document document)
         {
+            Debug.WriteLine("OnDocumentOpened");
             ThreadHelper.ThrowIfNotOnUIThread();
-            Debug.WriteLine($"Document opened: {document}");
+            string path = document.Path;
+            _ = Task.Run(async delegate
+            {
+                await Task.Delay(1000);
+                ChangeColor(document, path);
+            });
+            //IsTabGroupColorized
+        }
+
+        private void ChangeColor(Document document, string path)
+        {
             var window = document?.ActiveWindow;
             if (window == null) return;
 
@@ -101,9 +132,9 @@ namespace VSIXProject_TabColors
             if (rootView == null) return;
 
             SolidColorBrush insteadBrush;
-            if (!cacheColors.TryGetValue(document.Path, out insteadBrush))
+            if (!cacheColors.TryGetValue(path, out insteadBrush))
             {
-                var rand = new Random(document.Path.GetHashCode());
+                var rand = new Random(path.GetHashCode());
                 insteadBrush = new SolidColorBrush(new Color()
                 {
                     R = (byte)rand.Next(256),
@@ -111,7 +142,7 @@ namespace VSIXProject_TabColors
                     B = (byte)rand.Next(256),
                     A = 255,
                 });
-                cacheColors.Add(document.Path, insteadBrush);
+                cacheColors.Add(path, insteadBrush);
             }
 
             if (property_TabAccentBrush == null)
@@ -120,12 +151,15 @@ namespace VSIXProject_TabColors
             }
             if (property_TabAccentBrush == null) return;
 
+            if (property_Colorized == null)
+            {
+                property_Colorized = rootView.GetType().GetRuntimeProperty("IsTabGroupColorized");
+            }
+            if (property_Colorized == null) return;
+
+            property_Colorized.SetValue(rootView, true);
             property_TabAccentBrush.SetValue(rootView, insteadBrush);
-
-            //IsTabGroupColorized
         }
-
-
         #endregion
     }
 }
