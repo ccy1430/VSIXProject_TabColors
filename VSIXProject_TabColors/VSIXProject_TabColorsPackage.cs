@@ -3,6 +3,7 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Events;
 using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.Collections.Generic;
@@ -38,10 +39,10 @@ namespace VSIXProject_TabColors
     /// </para>
     /// </remarks>
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
-    [Guid(VSIXProject_TabColorsPackage.PackageGuidString)]
     //[InstalledProductRegistration(Vsix.Name, Vsix.Description, Vsix.Version)]
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string, PackageAutoLoadFlags.BackgroundLoad)]
+    [Guid(PackageGuids.CommandGuidString)]
     public sealed class VSIXProject_TabColorsPackage : AsyncPackage
     {
         /// <summary>
@@ -64,12 +65,17 @@ namespace VSIXProject_TabColors
             // Do any initialization that requires the UI thread after switching to the UI thread.
 
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+            await ResetTabColors.InitializeAsync(this);
 
             base.Initialize();
             var dte = (DTE2)await GetServiceAsync(typeof(DTE));
             var events = dte.Events as Events2;
+            //todo 不当用
+            //events.DTEEvents.OnMacrosRuntimeReset += DTEEvents_OnMacrosRuntimeReset;
 
-           var  windowEvents = events.WindowEvents;
+
+
+            var windowEvents = events.WindowEvents;
             windowEvents.WindowCreated += WindowEvents_WindowCreated;
 
             var documents = dte.Documents;
@@ -77,7 +83,6 @@ namespace VSIXProject_TabColors
             {
                 ChangeColor(doc, doc.Path);
             }
-
 
             //var _windowFrameEvents = new MyWindowFrameNotify();
             //IVsWindowFrame windowFrame = await ServiceProvider.GetGlobalServiceAsync(typeof(IVsWindowFrame)) as IVsWindowFrame;
@@ -87,16 +92,42 @@ namespace VSIXProject_TabColors
             //}
             //new RunningDocTableEvents();
 
+            MySolutionEvents solutionEvents = new MySolutionEvents();
+            IVsSolution solution = await this.GetServiceAsync(typeof(SVsSolution)) as IVsSolution;
+            uint mySolutionEventsCookie = 0;
+            if (solution != null)
+            {
+                int adviseSolutionResult = solution.AdviseSolutionEvents(solutionEvents, out mySolutionEventsCookie);
+                if (adviseSolutionResult != VSConstants.S_OK)
+                {
+                    Debug.WriteLine("AdviseSolutionEvents fail");
+                }
+            }
+
             Debug.WriteLine("------------------------------------------------");
             Debug.WriteLine("tabcolor");
             Debug.WriteLine("------------------------------------------------");
         }
 
+        private void DTEEvents_OnMacrosRuntimeReset()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var dte = (DTE2)GetService(typeof(DTE));
+            var documents = dte.Documents;
+            foreach (Document doc in documents)
+            {
+                ChangeColor(doc, doc.Path);
+            }
+        }
+
         private void WindowEvents_WindowCreated(EnvDTE.Window Window)
         {
+
             Debug.WriteLine("WindowCreated");
             ThreadHelper.ThrowIfNotOnUIThread();
-            ChangeColor(Window.Document,Window.Document.Path);
+            if (Window.Document == null) return;
+
+            ChangeColor(Window.Document, Window.Document.Path);
         }
 
         private static readonly Dictionary<string, SolidColorBrush> cacheColors = new Dictionary<string, SolidColorBrush>();
@@ -117,7 +148,7 @@ namespace VSIXProject_TabColors
             //IsTabGroupColorized
         }
 
-        private void ChangeColor(Document document, string path)
+        public static void ChangeColor(Document document, string path)
         {
             var window = document?.ActiveWindow;
             if (window == null) return;
@@ -161,5 +192,23 @@ namespace VSIXProject_TabColors
             property_TabAccentBrush.SetValue(rootView, insteadBrush);
         }
         #endregion
+    }
+
+
+    /// <summary>
+    /// Helper class that exposes all GUIDs used across VS Package.
+    /// </summary>
+    internal sealed partial class PackageGuids
+    {
+        public const string CommandGuidString = "acdd3720-1170-4da8-821e-bf6031b0668b";
+        public static Guid CommandGuid = new Guid(CommandGuidString);
+    }
+    /// <summary>
+    /// Helper class that encapsulates all CommandIDs uses across VS Package.
+    /// </summary>
+    internal sealed partial class PackageIds
+    {
+        public const int MyMenuGroup = 0x1020;
+        public const int ResetTabColors = 0x0100;
     }
 }

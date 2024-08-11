@@ -22,7 +22,7 @@
 
   <!--The Commands section is where commands, menus, and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
-  <Commands package="guidVSIXProject_TabColorsPackage">
+  <Commands package="guidVSIXProject_TabColorsPackageCmdSet">
     <!-- Inside this section we have different sub-sections: one for the menus, another
     for the menu groups, one for the buttons (the actual commands), one for the combos
     and the last one for the bitmaps used. Each element is identified by a command id that
@@ -52,14 +52,15 @@
               <CommandFlag>DefaultInvisible</CommandFlag>
               <CommandFlag>DynamicVisibility</CommandFlag>
           If you do not want an image next to your command, remove the Icon node /> -->
-      <Button guid="guidVSIXProject_TabColorsPackageCmdSet" id="Command1Id" priority="0x0100" type="Button">
+      <Button guid="guidVSIXProject_TabColorsPackageCmdSet" id="ResetTabColors" priority="0x0100" type="Button">
         <Parent guid="guidVSIXProject_TabColorsPackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
-          <ButtonText>Invoke Command1</ButtonText>
+          <ButtonText>ResetTabColors</ButtonText>
         </Strings>
       </Button>
     </Buttons>
+	  
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
     <Bitmaps>
@@ -79,7 +80,7 @@
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidVSIXProject_TabColorsPackageCmdSet" value="{acdd3720-1170-4da8-821e-bf6031b0668b}">
       <IDSymbol name="MyMenuGroup" value="0x1020" />
-      <IDSymbol name="Command1Id" value="0x0100" />
+      <IDSymbol name="ResetTabColors" value="0x0100" />
     </GuidSymbol>
 
     <GuidSymbol name="guidImages" value="{1b6d5ac7-c64f-405f-95a6-1a243fd49091}" >
